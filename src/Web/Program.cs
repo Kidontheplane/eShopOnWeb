@@ -26,18 +26,20 @@ if (builder.Environment.IsDevelopment() || builder.Environment.EnvironmentName =
     // Configure SQL Server (local)
     Microsoft.eShopWeb.Infrastructure.Dependencies.ConfigureServices(builder.Configuration, builder.Services);
 }
-else{
-    // Configure SQL Server (prod)
-    var credential = new ChainedTokenCredential(new AzureDeveloperCliCredential(), new DefaultAzureCredential());
-    builder.Services.AddDbContext<CatalogContext>(c =>
+else
+{
+    // Production environment - use direct connection strings
+    var catalogConnectionString = builder.Configuration.GetConnectionString("CatalogConnection");
+    var identityConnectionString = builder.Configuration.GetConnectionString("IdentityConnection");
+
+    builder.Services.AddDbContext<CatalogContext>(options =>
     {
-        var connectionString = builder.Configuration.GetConnectionString("CatalogConnection");
-        c.UseSqlServer(connectionString, sqlOptions => sqlOptions.EnableRetryOnFailure());
+        options.UseSqlServer(catalogConnectionString, sqlOptions => sqlOptions.EnableRetryOnFailure());
     });
+
     builder.Services.AddDbContext<AppIdentityDbContext>(options =>
     {
-        var identityConnectionString = builder.Configuration.GetConnectionString("IdentityConnection");
-        options.UseSqlServer(connectionString, sqlOptions => sqlOptions.EnableRetryOnFailure());
+        options.UseSqlServer(identityConnectionString, sqlOptions => sqlOptions.EnableRetryOnFailure());
     });
 }
 
